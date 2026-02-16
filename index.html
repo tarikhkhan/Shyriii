@@ -24,39 +24,50 @@
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
 
         #content-layer {
-            position: relative; z-index: 10; width: 85vw; max-width: 1000px;
+            position: relative; z-index: 10; width: 90vw; max-width: 1000px;
             text-align: center; pointer-events: none; padding: 20px; box-sizing: border-box;
         }
 
-        #message-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
-
-        .word-wrapper { display: inline-block; white-space: nowrap; }
-
-        .letter {
-            display: inline-block; opacity: 0; transform: scale(0);
-            color: var(--text-black); font-size: clamp(1.5rem, 6.5vw, 3.8rem);
-            font-weight: 900; text-shadow: 2.5px 2.5px 0px var(--pink-shadow);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        #message-container { 
+            display: flex; flex-wrap: wrap; justify-content: center; 
+            gap: 0.1rem; line-height: 1.6;
         }
 
-        .letter.reveal { opacity: 1; transform: scale(1); }
+        .word-wrapper { display: inline-block; white-space: nowrap; margin-right: 15px; }
+
+        .letter {
+            display: inline-block; 
+            opacity: 0; 
+            transform: translateY(15px) scale(0.8);
+            color: var(--text-black); 
+            font-size: clamp(1.2rem, 5.5vw, 3rem);
+            font-weight: 900; 
+            text-shadow: 2.5px 2.5px 0px var(--pink-shadow);
+            transition: opacity 1s ease, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: opacity, transform;
+        }
+
+        .letter.reveal { 
+            opacity: 1; 
+            transform: translateY(0) scale(1); 
+        }
 
         #signature {
             position: fixed; bottom: 30px; right: 30px; z-index: 25;
-            font-size: 2rem; font-weight: 900; opacity: 0; visibility: hidden;
-            transition: opacity 1.5s ease; font-family: 'Arial Rounded MT Bold', sans-serif;
+            font-size: 2.2rem; font-weight: 900; opacity: 0; visibility: hidden;
+            transition: opacity 2s ease; font-family: 'Arial Rounded MT Bold', sans-serif;
             background: linear-gradient(90deg, var(--pink-main), #fff, var(--sparkle-pink));
             background-size: 200% auto; -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px var(--pink-shadow));
+            -webkit-text-fill-color: transparent;
         }
 
         #signature.show { opacity: 1; visibility: visible; animation: pinkShine 3s linear infinite, bounce 2s infinite alternate; }
 
         #music-control {
             position: fixed; top: 20px; right: 20px; z-index: 100;
-            background: rgba(255, 255, 255, 0.5); border: none; border-radius: 50%;
-            width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem;
-            display: flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.8); border: none; border-radius: 50%;
+            width: 45px; height: 45px; cursor: pointer; font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.2);
         }
 
         @keyframes pinkShine { to { background-position: 200% center; } }
@@ -64,7 +75,7 @@
         @keyframes glow { from { text-shadow: 2px 2px 0px var(--pink-shadow); } to { text-shadow: 0px 0px 15px var(--pink-main), 2px 2px 0px var(--pink-shadow); } }
         .finished .letter { animation: glow 2s ease-in-out infinite alternate; }
 
-        #hint { position: fixed; bottom: 5%; left: 0; width: 100%; text-align: center; color: var(--pink-main); font-weight: bold; font-size: 0.9rem; z-index: 20; pointer-events: none; }
+        #hint { position: fixed; bottom: 8%; left: 0; width: 100%; text-align: center; color: var(--pink-main); font-weight: bold; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -103,105 +114,101 @@
         class Heart {
             constructor(x, y, isFinalBurst) {
                 this.x = x; this.y = y;
-                const speedMult = isFinalBurst ? 18 : 11;
-                this.vx = (Math.random() - 0.5) * speedMult; 
-                this.vy = (Math.random() - 0.5) * speedMult;
-                this.size = Math.random() * 10 + 20;
+                const speed = isFinalBurst ? 10 : 5;
+                this.vx = (Math.random() - 0.5) * speed;
+                this.vy = (Math.random() - 0.5) * speed - (isFinalBurst ? 3 : 1);
+                this.size = Math.random() * 12 + 18;
                 this.color = colors[Math.floor(Math.random() * colors.length)];
-                this.opacity = 1; this.friction = 0.98; 
+                this.opacity = 1;
+                this.gravity = 0.025;
             }
-            update() { this.vx *= this.friction; this.vy *= this.friction; this.x += this.vx; this.y += this.vy; this.opacity -= 0.007; }
-            draw() { ctx.globalAlpha = this.opacity; ctx.fillStyle = this.color; ctx.font = `${this.size}px serif`; ctx.fillText('❤', this.x, this.y); }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.opacity -= 0.012; 
+            }
+            draw() {
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = this.color;
+                ctx.font = `${this.size}px serif`;
+                ctx.fillText('❤', this.x, this.y);
+            }
         }
 
-        function fadeInMusic() {
-            audio.volume = 0;
-            audio.play();
-            let vol = 0;
-            const interval = setInterval(() => {
-                if (vol < 0.9) {
-                    vol += 0.05;
-                    audio.volume = vol;
-                } else {
-                    clearInterval(interval);
-                }
-            }, 200);
+        function autoBurst() {
+            const rx = (Math.random() * 0.6 + 0.2) * canvas.width;
+            const ry = (Math.random() * 0.4 + 0.3) * canvas.height;
+            for(let i=0; i<10; i++) particles.push(new Heart(rx, ry, false));
+        }
+
+        // PRE-RENDER
+        const words = textMessage.split(" ");
+        const allLetters = [];
+
+        words.forEach(word => {
+            const wordWrapper = document.createElement('div');
+            wordWrapper.className = 'word-wrapper';
+            const chars = Array.from(word);
+            chars.forEach(char => {
+                const span = document.createElement('span');
+                span.innerText = char;
+                span.className = 'letter';
+                wordWrapper.appendChild(span);
+                allLetters.push(span);
+            });
+            container.appendChild(wordWrapper);
+        });
+
+        async function startTyping() {
+            for (let i = 0; i < allLetters.length; i++) {
+                allLetters[i].classList.add('reveal');
+                
+                // Burst every 4 letters to keep up with the 200ms pace
+                if (i % 4 === 0) autoBurst();
+
+                // DELAY SET TO 200ms
+                await new Promise(r => setTimeout(r, 200)); 
+            }
+            
+            setTimeout(() => {
+                container.classList.add('finished');
+                signature.classList.add('show');
+                for(let j=0; j<120; j++) particles.push(new Heart(canvas.width/2, canvas.height/2, true));
+            }, 600);
         }
 
         function handleInteraction(x, y) {
-            if (!musicStarted) {
-                fadeInMusic();
-                musicStarted = true;
-            }
-            for(let i=0; i<18; i++) particles.push(new Heart(x, y, false));
+            if (!musicStarted) { audio.play(); musicStarted = true; }
+            for(let i=0; i<8; i++) particles.push(new Heart(x, y, false));
             if (!animationStarted) {
                 clicks++;
-                if (clicks === targetClicks) {
+                if (clicks >= targetClicks) {
                     animationStarted = true;
                     hint.style.display = 'none';
                     startTyping();
                 } else {
-                    hint.innerText = `${targetClicks - clicks} heartbeats to go...`;
+                    hint.innerText = `${targetClicks - clicks} heartbeats left...`;
                 }
             }
         }
 
         window.addEventListener('mousedown', (e) => handleInteraction(e.clientX, e.clientY));
-        window.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            handleInteraction(touch.clientX, touch.clientY);
-        }, { passive: false });
+        window.addEventListener('touchstart', (e) => handleInteraction(e.touches[0].clientX, e.touches[0].clientY));
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.opacity > 0);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
 
         musicBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (audio.paused) { audio.play(); musicBtn.innerText = "🎵"; }
             else { audio.pause(); musicBtn.innerText = "🔇"; }
         });
-
-        function startTyping() {
-            const words = textMessage.split(" ");
-            let globalCharIndex = 0;
-            words.forEach((wordText, wordIndex) => {
-                const wordWrapper = document.createElement('div');
-                wordWrapper.className = 'word-wrapper';
-                container.appendChild(wordWrapper);
-                const chars = Array.from(wordText);
-                chars.forEach((char) => {
-                    const span = document.createElement('span');
-                    span.innerText = char; span.className = 'letter';
-                    wordWrapper.appendChild(span);
-                    setTimeout(() => {
-                        span.classList.add('reveal');
-                        if(globalCharIndex % 6 === 0) autoBurst();
-                    }, globalCharIndex * 200);
-                    globalCharIndex++;
-                });
-                if (wordIndex < words.length - 1) globalCharIndex++; 
-            });
-            setTimeout(() => {
-                container.classList.add('finished');
-                signature.classList.add('show');
-                for(let j=0; j<180; j++) particles.push(new Heart(window.innerWidth/2, window.innerHeight/2, true));
-            }, globalCharIndex * 200);
-        }
-
-        function autoBurst() {
-            const rx = Math.random() * canvas.width;
-            const ry = Math.random() * canvas.height;
-            for(let i=0; i<4; i++) particles.push(new Heart(rx, ry, false));
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for(let i = 0; i < particles.length; i++) {
-                particles[i].update(); particles[i].draw();
-                if(particles[i].opacity <= 0) { particles.splice(i, 1); i--; }
-            }
-            requestAnimationFrame(animate);
-        }
-        animate();
     </script>
 </body>
-
 </html>
-
